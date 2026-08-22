@@ -13,6 +13,28 @@ type OpenF1Session = {
   is_cancelled: boolean;
 };
 
+type JolpicaStandingEntry = {
+  position: string | number;
+  points: string | number;
+  wins: string | number;
+  Driver: {
+    code: string;
+    givenName: string;
+    familyName: string;
+  };
+  Constructors?: { name: string }[];
+};
+
+type JolpicaPayload = {
+  MRData?: {
+    StandingsTable?: {
+      StandingsLists?: {
+        DriverStandings?: JolpicaStandingEntry[];
+      }[];
+    };
+  };
+};
+
 export async function GET() {
   try {
     const [sessionsResponse, standingsResponse] = await Promise.all([
@@ -22,7 +44,7 @@ export async function GET() {
     if (!sessionsResponse.ok || !standingsResponse.ok) throw new Error("Upstream motorsport data unavailable");
 
     const sessions = await sessionsResponse.json() as OpenF1Session[];
-    const standingsPayload = await standingsResponse.json() as any;
+    const standingsPayload = await standingsResponse.json() as JolpicaPayload;
     const now = Date.now();
     const activeOrFuture = sessions
       .filter((session) => !session.is_cancelled && Date.parse(session.date_end) >= now)
@@ -36,7 +58,7 @@ export async function GET() {
       .map((session) => ({ name: session.session_name, startsAt: session.date_start, endsAt: session.date_end }));
 
     const rawStandings = standingsPayload?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings ?? [];
-    const standings = rawStandings.map((entry: any) => ({
+    const standings = rawStandings.map((entry: JolpicaStandingEntry) => ({
       position: Number(entry.position),
       code: entry.Driver.code,
       name: `${entry.Driver.givenName} ${entry.Driver.familyName}`,

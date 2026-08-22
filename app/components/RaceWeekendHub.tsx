@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { CircuitMap } from "./CircuitMap";
+
+const emptySubscribe = () => () => {};
+function useMounted() {
+  return useSyncExternalStore(emptySubscribe, () => true, () => false);
+}
 
 type Session = { name: string; startsAt: string; endsAt: string };
 type Standing = { position: number; code: string; name: string; team: string; points: number; wins: number };
@@ -22,11 +27,11 @@ const fallback: WeekendData = {
     { name: "Race", startsAt: "2026-08-23T13:00:00Z", endsAt: "2026-08-23T15:00:00Z" },
   ],
   standings: [
-    { position: 1, code: "ANT", name: "Andrea Kimi Antonelli", team: "Mercedes", points: 219, wins: 6 },
-    { position: 2, code: "HAM", name: "Lewis Hamilton", team: "Ferrari", points: 169, wins: 1 },
-    { position: 3, code: "RUS", name: "George Russell", team: "Mercedes", points: 160, wins: 2 },
-    { position: 4, code: "LEC", name: "Charles Leclerc", team: "Ferrari", points: 138, wins: 1 },
-    { position: 5, code: "NOR", name: "Lando Norris", team: "McLaren", points: 128, wins: 1 },
+    { position: 1, code: "ANT", name: "Andrea Kimi Antonelli", team: "Mercedes", points: 224, wins: 6 },
+    { position: 2, code: "HAM", name: "Lewis Hamilton", team: "Ferrari", points: 171, wins: 1 },
+    { position: 3, code: "RUS", name: "George Russell", team: "Mercedes", points: 168, wins: 2 },
+    { position: 4, code: "LEC", name: "Charles Leclerc", team: "Ferrari", points: 145, wins: 1 },
+    { position: 5, code: "NOR", name: "Lando Norris", team: "McLaren", points: 134, wins: 1 },
   ],
   updatedAt: "2026-08-22T00:00:00Z",
 };
@@ -49,29 +54,53 @@ function formatCountdown(ms: number) {
 
 export function RaceWeekendHub() {
   const [weekend, setWeekend] = useState(fallback);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState<number>(0);
   const [spoilerFree, setSpoilerFree] = useState(false);
   const [stopLap, setStopLap] = useState(28);
   const [degradation, setDegradation] = useState<"Low" | "Medium" | "High">("Medium");
   const [safetyCar, setSafetyCar] = useState(false);
+  const mounted = useMounted();
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("apex-spoiler-free");
-    if (saved === "true") setSpoilerFree(true);
-    fetch("/api/race-weekend").then((response) => response.ok ? response.json() : Promise.reject()).then(setWeekend).catch(() => undefined);
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
+    const timer = setTimeout(() => {
+      try {
+        const saved = window.localStorage.getItem("apex-spoiler-free");
+        if (saved === "true") {
+          setSpoilerFree(true);
+        }
+      } catch {
+        // Safe no-op
+      }
+    }, 0);
+    fetch("/api/race-weekend").then((response) => response.ok ? response.json() : null).then((data) => { if (data) setWeekend(data); }).catch(() => undefined);
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => {
+      clearTimeout(timer);
+      window.clearInterval(interval);
+    };
   }, []);
 
   const toggleSpoilers = () => {
     const next = !spoilerFree;
     setSpoilerFree(next);
-    window.localStorage.setItem("apex-spoiler-free", String(next));
+    try {
+      window.localStorage.setItem("apex-spoiler-free", String(next));
+    } catch {
+      // Safe no-op
+    }
   };
-  const nextSession = weekend.sessions.find((session) => Date.parse(session.endsAt) >= now) ?? weekend.sessions.at(-1)!;
+  const currentTime = now > 0 ? now : 1787385600000;
+  const nextSession = weekend.sessions.find((session) => Date.parse(session.endsAt) >= currentTime) ?? weekend.sessions.at(-1)!;
   const nextStart = Date.parse(nextSession.startsAt);
-  const isLive = nextStart <= now && Date.parse(nextSession.endsAt) >= now;
-  const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone.replaceAll("_", " "), []);
+  const isLive = nextStart <= currentTime && Date.parse(nextSession.endsAt) >= currentTime;
+  const timezone = useMemo(() => {
+    if (!mounted) return "Local time";
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone.replaceAll("_", " ");
+    } catch {
+      return "Local time";
+    }
+  }, [mounted]);
   const preferredLap = degradation === "High" ? 22 : degradation === "Medium" ? 29 : 36;
   const windowScore = Math.max(0, 100 - Math.abs(stopLap - preferredLap) * 7 + (safetyCar ? 10 : 0));
   const strategyLabel = windowScore > 82 ? "STRONG WINDOW" : windowScore > 58 ? "WORKABLE" : "HIGH RISK";
@@ -80,7 +109,7 @@ export function RaceWeekendHub() {
     <div className="race-hub-intro"><div><p className="eyebrow"><span>LIVE</span> YOUR FIVE-MINUTE RACE BRIEF</p><h1>UNDERSTAND<br />THE <em>RACE.</em></h1></div><div className="race-hub-promise"><p>The sessions, circuit and decisions that matter this weekend—translated into one clear visual briefing.</p><button type="button" className={spoilerFree ? "spoiler-toggle active" : "spoiler-toggle"} onClick={toggleSpoilers} aria-pressed={spoilerFree}><i /> SPOILER-FREE {spoilerFree ? "ON" : "OFF"}</button></div></div>
 
     <div className="race-command-grid">
-      <section className="weekend-card"><div className="weekend-card-top"><span>2026 RACE WEEKEND</span><b className={isLive ? "pulse" : ""}>{isLive ? "SESSION LIVE" : `NEXT · ${nextSession.name.toUpperCase()}`}</b></div><p>{weekend.meeting.country.toUpperCase()} · {weekend.meeting.location.toUpperCase()}</p><h2>{weekend.meeting.circuit}</h2><div className="countdown"><span>{isLive ? "NOW RUNNING" : "LIGHTS OUT IN"}</span><strong>{isLive ? "SESSION LIVE" : formatCountdown(nextStart - now)}</strong><small>Shown in your timezone · {timezone}</small></div><div className="session-strip">{weekend.sessions.map((session) => { const start = Date.parse(session.startsAt); const ended = Date.parse(session.endsAt) < now; return <div className={session.name === nextSession.name ? "active" : ended ? "complete" : ""} key={session.name}><span>{ended ? "✓" : session.name}</span><time>{new Intl.DateTimeFormat(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" }).format(start)}</time></div>; })}</div><div className="data-line">Session feed: <a href="https://openf1.org/" target="_blank" rel="noreferrer">OpenF1 ↗</a> · Schedule reference: <a href="https://www.formula1.com/en/racing/2026" target="_blank" rel="noreferrer">Formula 1 ↗</a></div></section>
+      <section className="weekend-card"><div className="weekend-card-top"><span>2026 RACE WEEKEND</span><b className={isLive ? "pulse" : ""}>{isLive ? "SESSION LIVE" : `NEXT · ${nextSession.name.toUpperCase()}`}</b></div><p>{weekend.meeting.country.toUpperCase()} · {weekend.meeting.location.toUpperCase()}</p><h2>{weekend.meeting.circuit}</h2><div className="countdown"><span>{isLive ? "NOW RUNNING" : "LIGHTS OUT IN"}</span><strong suppressHydrationWarning>{isLive ? "SESSION LIVE" : formatCountdown(nextStart - currentTime)}</strong><small suppressHydrationWarning>Shown in your timezone · {timezone}</small></div><div className="session-strip">{weekend.sessions.map((session) => { const start = Date.parse(session.startsAt); const ended = Date.parse(session.endsAt) < currentTime; return <div className={session.name === nextSession.name ? "active" : ended ? "complete" : ""} key={session.name}><span>{ended ? "✓" : session.name}</span><time suppressHydrationWarning>{new Intl.DateTimeFormat(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" }).format(start)}</time></div>; })}</div><div className="data-line">Session feed: <a href="https://openf1.org/" target="_blank" rel="noreferrer">OpenF1 ↗</a> · Schedule reference: <a href="https://www.formula1.com/en/racing/2026" target="_blank" rel="noreferrer">Formula 1 ↗</a></div></section>
 
       <aside className="weekend-track"><CircuitMap slug="zandvoort" name="Circuit Zandvoort" /><div className="track-facts"><span><b>4.259</b> KM</span><span><b>72</b> LAPS</span><span><b>14</b> TURNS</span><span><b>21.52</b> S PIT LOSS*</span></div><a href="https://www.formula1.com/en/information/netherlands-zandvoort-circuit-zandvoort.6XdtPTIMZzx5wLKP9mm7Ev" target="_blank" rel="noreferrer">OFFICIAL CIRCUIT REFERENCE ↗</a></aside>
     </div>

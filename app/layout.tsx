@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -42,19 +43,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const adsenseClient = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT;
+
   return (
     <html lang="en">
       <head>
-        {adsenseClient ? (
-          <>
-            <meta name="google-adsense-account" content={adsenseClient} />
-            <script async crossOrigin="anonymous" src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`} />
-          </>
+        {adsenseClient && adsenseClient.startsWith("ca-pub-") ? (
+          <meta name="google-adsense-account" content={adsenseClient} />
         ) : null}
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {adsenseClient && adsenseClient.startsWith("ca-pub-") ? (
+          <Script
+            id="google-adsense"
+            strategy="afterInteractive"
+            crossOrigin="anonymous"
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
+          />
+        ) : null}
         {children}
       </body>
     </html>
