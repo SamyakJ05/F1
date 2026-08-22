@@ -17,7 +17,7 @@ export type Circuit = {
   drsZones: number;
   overtakingDifficulty: "Low" | "Moderate" | "High" | "Extreme";
   downforceLevel: "Low" | "Medium" | "High" | "Maximum";
-  tireStress: "Low" | "Medium" | "High" | "Very High";
+  tireStress: "Low" | "Medium" | "High" | "Very High" | "Extreme";
   gearShiftsPerLap: number;
   intro: string;
   sectors: { name: string; focus: string; description: string }[];
@@ -298,7 +298,7 @@ export const circuits: Circuit[] = [
     lapRecord: { time: "1:17.774", driver: "Valtteri Bottas", year: 2021 },
     drsZones: 3,
     overtakingDifficulty: "Low",
-    downforceLevel: "Maximum (Thin Air)",
+    downforceLevel: "Maximum",
     tireStress: "Medium",
     gearShiftsPerLap: 44,
     intro: "Perched 2,285 meters above sea level, the air is 22% less dense than at sea level. Teams run Monaco-spec maximum downforce wings, yet cars achieve Monza-rivaling top speeds of 355 km/h because of the minimal aerodynamic drag.",
