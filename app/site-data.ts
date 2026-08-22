@@ -10,6 +10,7 @@ export type Circuit = {
   lessons: { title: string; text: string }[];
   fieldNote: string;
   sourceUrl: string;
+  officialUrl: string;
 };
 
 export const circuits: Circuit[] = [
@@ -23,6 +24,7 @@ export const circuits: Circuit[] = [
     ],
     fieldNote: "At a rhythm circuit, the steering wheel should feel like a sentence, not a list of words.",
     sourceUrl: "https://www.formula1.com/en/information/japan-suzuka-international-racing-course.2XjOiKgIHRRBVVpp5N3S5t",
+    officialUrl: "https://www.suzukacircuit.jp/eng/",
   },
   {
     slug: "spa", name: "Spa", country: "Belgium", character: "Compression and courage", distance: "7.0 km", turns: "19 turns", lapType: "Elevation-led", 
@@ -34,6 +36,7 @@ export const circuits: Circuit[] = [
     ],
     fieldNote: "At an elevation circuit, the track tells the car what grip it has—one metre at a time.",
     sourceUrl: "https://www.formula1.com/en/information/belgium-circuit-de-spa-francorchamps.3LltuYaAXVRU8iezEsjzGw",
+    officialUrl: "https://www.spa-francorchamps.be/en",
   },
   {
     slug: "silverstone", name: "Silverstone", country: "United Kingdom", character: "Aero load and precision", distance: "5.9 km", turns: "18 turns", lapType: "High-speed sweepers",
@@ -45,6 +48,7 @@ export const circuits: Circuit[] = [
     ],
     fieldNote: "At a high-speed circuit, confidence is not a feeling. It is data the driver can repeat.",
     sourceUrl: "https://www.formula1.com/en/information/great-britain-silverstone-circuit.2DtFVI1FjkYgLVdGhbAIv0",
+    officialUrl: "https://www.silverstone.co.uk/",
   },
 ];
 

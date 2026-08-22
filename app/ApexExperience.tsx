@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { CircuitMap } from "./components/CircuitMap";
 
 type Point3 = [number, number, number];
 
@@ -150,25 +151,21 @@ export function CarCanvas() {
     onPointerMove={updatePointer} onPointerUp={() => { drag.current = false; }} onPointerLeave={() => { drag.current = false; }} />;
 }
 
-const circuitPaths = {
-  Suzuka: "M40,170 C25,100 70,30 138,58 C185,79 210,24 268,45 C324,67 274,114 238,128 C203,141 200,191 247,201 C298,211 330,166 356,185 C384,204 349,241 310,245 C252,251 222,212 184,202 C139,191 120,247 75,229 C38,215 63,181 40,170Z",
-  Spa: "M38,205 C69,187 54,125 94,119 C135,113 135,54 185,46 C233,38 239,91 286,91 C341,91 373,126 350,161 C330,190 284,173 270,211 C255,250 210,240 185,210 C157,175 126,232 88,238 C62,241 52,219 38,205Z",
-  Silverstone: "M52,191 C90,180 66,130 107,118 L150,96 C180,78 189,42 224,54 C252,64 237,99 270,111 C312,126 357,107 364,146 C371,184 329,180 308,208 C281,244 235,213 201,224 C165,236 143,211 119,216 C80,224 70,202 52,191Z",
-};
-type CircuitName = keyof typeof circuitPaths;
+const circuitOptions = ["Suzuka", "Spa", "Silverstone"] as const;
+type CircuitName = typeof circuitOptions[number];
 
 function CircuitExplorer() {
   const [circuit, setCircuit] = useState<CircuitName>("Suzuka");
   const info = { Suzuka: ["5.8 KM", "18 TURNS", "FIGURE EIGHT"], Spa: ["7.0 KM", "19 TURNS", "HIGH SPEED"], Silverstone: ["5.9 KM", "18 TURNS", "AERO LOAD"] }[circuit];
-  const artwork = { Suzuka: "/media/suzuka-diorama.png", Spa: "/media/spa-diorama.png", Silverstone: "/media/silverstone-diorama.png" }[circuit];
+  const slug = { Suzuka: "suzuka", Spa: "spa", Silverstone: "silverstone" }[circuit] as const;
   return <div className="circuit-console">
     <div className="console-topline"><span>TRACK MODEL / 01</span><span className="live-dot">INTERACTIVE</span></div>
-    <div className="track-stage"><img className="track-render" src={artwork} alt={`${circuit} circuit aerial 3D illustration`} />
+    <div className="track-stage"><CircuitMap slug={slug} name={circuit} className="track-render" />
       <span className="track-marker marker-one">TRACK NOTE</span><span className="track-marker marker-two">3D VIEW</span>
       <div className="track-title"><span>FEATURED CIRCUIT</span><strong>{circuit.toUpperCase()}</strong></div>
     </div>
     <div className="circuit-stats">{info.map((stat) => <span key={stat}>{stat}</span>)}</div>
-    <div className="circuit-tabs" aria-label="Select a circuit">{(Object.keys(circuitPaths) as CircuitName[]).map((name, index) => <button type="button" key={name} className={circuit === name ? "active" : ""} onClick={() => setCircuit(name)}><span>0{index + 1}</span>{name}</button>)}</div>
+    <div className="circuit-tabs" aria-label="Select a circuit">{circuitOptions.map((name, index) => <button type="button" key={name} className={circuit === name ? "active" : ""} onClick={() => setCircuit(name)}><span>0{index + 1}</span>{name}</button>)}</div>
   </div>;
 }
 
