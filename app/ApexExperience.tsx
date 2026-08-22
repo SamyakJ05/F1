@@ -1,180 +1,87 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { CircuitMap } from "./components/CircuitMap";
-import { RaceWeekendHub } from "./components/RaceWeekendHub";
 
-type Point3 = [number, number, number];
+const PACE_BARS = [23, 40, 53, 40, 33, 14, 7, 17, 75, 65, 88, 75, 65, 47, 33, 88, 4, 7, 9, 14, 95, 65, 79, 37, 7, 40, 17, 20, 62, 47, 92, 72];
 
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(Math.max(value, min), max);
+type Session = { name: string; startsAt: string; endsAt: string };
+type Weekend = { meeting: { country: string; location: string; circuit: string }; sessions: Session[] };
 
-export function CarCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pointer = useRef({ x: 0.28, y: -0.12 });
-  const drag = useRef(false);
+const fallbackWeekend: Weekend = {
+  meeting: { country: "Netherlands", location: "Zandvoort", circuit: "Zandvoort" },
+  sessions: [
+    { name: "Practice 1", startsAt: "2026-08-21T10:30:00Z", endsAt: "2026-08-21T11:30:00Z" },
+    { name: "Sprint Qualifying", startsAt: "2026-08-21T14:30:00Z", endsAt: "2026-08-21T15:14:00Z" },
+    { name: "Sprint", startsAt: "2026-08-22T10:00:00Z", endsAt: "2026-08-22T11:00:00Z" },
+    { name: "Qualifying", startsAt: "2026-08-22T14:00:00Z", endsAt: "2026-08-22T15:00:00Z" },
+    { name: "Race", startsAt: "2026-08-23T13:00:00Z", endsAt: "2026-08-23T15:00:00Z" },
+  ],
+};
 
+function Animate({ children, delay = 0, direction = "up", className = "" }: { children: ReactNode; delay?: number; direction?: "up" | "down" | "scale"; className?: string }) {
+  return <div className={`aa-reveal aa-reveal-${direction} ${className}`} style={{ animationDelay: `${delay}ms` }}>{children}</div>;
+}
+
+function formatCountdown(milliseconds: number) {
+  if (milliseconds <= 0) return "SESSION LIVE";
+  const total = Math.floor(milliseconds / 1000);
+  const days = Math.floor(total / 86400);
+  const hours = Math.floor((total % 86400) / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  return `${days ? `${days}D ` : ""}${String(hours).padStart(2, "0")}H ${String(minutes).padStart(2, "0")}M ${String(seconds).padStart(2, "0")}S`;
+}
+
+function WeekendCard({ weekend, now }: { weekend: Weekend; now: number | null }) {
+  const currentTime = now ?? 0;
+  const nextSession = weekend.sessions.find((session) => Date.parse(session.endsAt) >= currentTime) ?? weekend.sessions.at(-1)!;
+  const start = Date.parse(nextSession.startsAt);
+  const live = now !== null && start <= now && Date.parse(nextSession.endsAt) >= now;
+  const maxHeight = Math.max(...PACE_BARS);
+
+  return <Animate delay={850} direction="scale" className="aa-weekend-card-wrap">
+    <aside className="aa-weekend-card" aria-label="Current race weekend briefing">
+      <div className="aa-card-label"><span><i /> NEXT WEEKEND</span><b>ROUND 12</b></div>
+      <p className="aa-country">{weekend.meeting.country}</p>
+      <h2>{weekend.meeting.circuit}</h2>
+      <div className="aa-next-session"><span>{live ? "LIVE NOW" : `NEXT · ${nextSession.name.toUpperCase()}`}</span><strong>{now === null ? "SYNCING…" : live ? "SESSION LIVE" : formatCountdown(start - now)}</strong><small>{now === null ? "Times adjust to your device" : new Intl.DateTimeFormat(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit", timeZoneName: "short" }).format(start)}</small></div>
+      <div className="aa-pace-chart" aria-label="Illustrative track evolution chart">
+        <div className="aa-bars">{PACE_BARS.map((height, index) => <i key={index} style={{ height: `${height / maxHeight * 100}%`, animationDelay: `${1050 + index * 25}ms` }} />)}</div>
+        <div className="aa-chart-axis"><span>FP1</span><span>SQ</span><span>SPRINT</span><span>QUALI</span><span>RACE</span></div>
+      </div>
+      <div className="aa-card-source">LIVE SESSIONS BY <a href="https://openf1.org/" target="_blank" rel="noreferrer">OPENF1 ↗</a></div>
+    </aside>
+  </Animate>;
+}
+
+function Navigation({ open, setOpen }: { open: boolean; setOpen: (value: boolean) => void }) {
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const context = canvas.getContext("2d");
-    if (!context) return;
-    let frame = 0;
-    let width = 0;
-    let height = 0;
-
-    const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      width = rect.width;
-      height = rect.height;
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
-      context.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-
-    const project = (point: Point3, yaw: number, pitch: number) => {
-      const [x, y, z] = point;
-      const cy = Math.cos(yaw);
-      const sy = Math.sin(yaw);
-      const cp = Math.cos(pitch);
-      const sp = Math.sin(pitch);
-      const rx = x * cy - z * sy;
-      const rz = x * sy + z * cy;
-      const ry = y * cp - rz * sp;
-      const rz2 = y * sp + rz * cp;
-      const scale = Math.min(width, height) * 0.155;
-      const perspective = 5.8 / (6.3 + rz2);
-      return {
-        x: width * 0.53 + rx * scale * perspective,
-        y: height * 0.52 - ry * scale * perspective,
-        depth: rz2,
-      };
-    };
-
-    const render = (time: number) => {
-      context.clearRect(0, 0, width, height);
-      const yaw = -0.62 + pointer.current.x * 0.32 + Math.sin(time * 0.00022) * 0.08;
-      const pitch = -0.05 + pointer.current.y * 0.16;
-      const glow = context.createRadialGradient(width * 0.58, height * 0.52, 10, width * 0.58, height * 0.52, width * 0.42);
-      glow.addColorStop(0, "rgba(198,255,49,.11)");
-      glow.addColorStop(0.55, "rgba(198,255,49,.025)");
-      glow.addColorStop(1, "rgba(0,0,0,0)");
-      context.fillStyle = glow;
-      context.fillRect(0, 0, width, height);
-
-      context.save();
-      context.strokeStyle = "rgba(198,255,49,.12)";
-      context.lineWidth = 1;
-      for (let i = 0; i < 6; i += 1) {
-        context.beginPath();
-        context.ellipse(width * 0.52, height * 0.82, width * (0.2 + i * 0.08), height * (0.035 + i * 0.012), -0.06, 0, Math.PI * 2);
-        context.stroke();
-      }
-      context.restore();
-
-      const faces: { points: Point3[]; fill: string; stroke: string }[] = [
-        { points: [[-1.2, .1, 1.55], [1.2, .1, 1.55], [.82, .12, 1.9], [-.82, .12, 1.9]], fill: "#c7ff31", stroke: "#e7ff93" },
-        { points: [[-.16, .08, -2.55], [.16, .08, -2.55], [.46, .18, -.3], [-.46, .18, -.3]], fill: "#d8dde0", stroke: "#ffffff" },
-        { points: [[-.46, .18, -.3], [.46, .18, -.3], [.58, .4, .9], [-.58, .4, .9]], fill: "#596064", stroke: "#aeb8bc" },
-        { points: [[-.58, .4, .9], [.58, .4, .9], [.42, .62, 1.25], [-.42, .62, 1.25]], fill: "#1b2022", stroke: "#7b868a" },
-        { points: [[-.34, .5, .5], [.34, .5, .5], [.25, .85, 1.18], [-.25, .85, 1.18]], fill: "#080a0b", stroke: "#c7ff31" },
-        { points: [[-.58, .22, .1], [-1.05, .12, .45], [-.82, .22, 1.3], [-.5, .42, .95]], fill: "#303638", stroke: "#788084" },
-        { points: [[.58, .22, .1], [1.05, .12, .45], [.82, .22, 1.3], [.5, .42, .95]], fill: "#303638", stroke: "#788084" },
-        { points: [[-.72, .55, 1.25], [.72, .55, 1.25], [.95, .58, 1.45], [-.95, .58, 1.45]], fill: "#24292b", stroke: "#c7ff31" },
-      ];
-
-      faces.map((face) => ({
-        ...face,
-        projected: face.points.map((point) => project(point, yaw, pitch)),
-        depth: face.points.reduce((sum, point) => sum + project(point, yaw, pitch).depth, 0) / face.points.length,
-      })).sort((a, b) => a.depth - b.depth).forEach((face) => {
-        context.beginPath();
-        face.projected.forEach((point, index) => index === 0 ? context.moveTo(point.x, point.y) : context.lineTo(point.x, point.y));
-        context.closePath();
-        context.fillStyle = face.fill;
-        context.fill();
-        context.strokeStyle = face.stroke;
-        context.lineWidth = 1.1;
-        context.stroke();
-      });
-
-      const wheels: Point3[] = [[-.9, .08, -1.15], [.9, .08, -1.15], [-1.02, .12, 1.08], [1.02, .12, 1.08]];
-      wheels.forEach((wheel) => {
-        const p = project(wheel, yaw, pitch);
-        const radius = clamp((Math.min(width, height) * 0.055) * (5.8 / (6.3 + p.depth)), 12, 38);
-        context.save();
-        context.translate(p.x, p.y);
-        context.rotate(yaw * .22);
-        context.fillStyle = "#050606";
-        context.strokeStyle = "#697174";
-        context.lineWidth = 2;
-        context.beginPath();
-        context.ellipse(0, 0, radius * .52, radius, 0, 0, Math.PI * 2);
-        context.fill();
-        context.stroke();
-        context.strokeStyle = "rgba(199,255,49,.7)";
-        context.lineWidth = 1;
-        context.beginPath();
-        context.ellipse(0, 0, radius * .31, radius * .68, 0, 0, Math.PI * 2);
-        context.stroke();
-        context.restore();
-      });
-
-      const nose = project([0, .1, -2.58], yaw, pitch);
-      context.fillStyle = "#ff4b36";
-      context.shadowColor = "#ff4b36";
-      context.shadowBlur = 18;
-      context.beginPath();
-      context.arc(nose.x, nose.y, 2.4, 0, Math.PI * 2);
-      context.fill();
-      context.shadowBlur = 0;
-      frame = requestAnimationFrame(render);
-    };
-
-    resize();
-    window.addEventListener("resize", resize);
-    frame = requestAnimationFrame(render);
-    return () => { window.removeEventListener("resize", resize); cancelAnimationFrame(frame); };
-  }, []);
-
-  const updatePointer = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!drag.current && event.pointerType !== "mouse") return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    pointer.current = {
-      x: clamp((event.clientX - rect.left) / rect.width - .5, -.5, .5),
-      y: clamp((event.clientY - rect.top) / rect.height - .5, -.5, .5),
-    };
-  };
-
-  return <canvas ref={canvasRef} className="car-canvas" aria-label="Interactive three-dimensional concept racing car. Drag to inspect the form." role="img" tabIndex={0}
-    onPointerDown={(event) => { drag.current = true; event.currentTarget.setPointerCapture(event.pointerId); updatePointer(event); }}
-    onPointerMove={updatePointer} onPointerUp={() => { drag.current = false; }} onPointerLeave={() => { drag.current = false; }} />;
-}
-
-const circuitOptions = ["Suzuka", "Spa", "Silverstone"] as const;
-type CircuitName = typeof circuitOptions[number];
-
-function CircuitExplorer() {
-  const [circuit, setCircuit] = useState<CircuitName>("Suzuka");
-  const info = { Suzuka: ["5.8 KM", "18 TURNS", "FIGURE EIGHT"], Spa: ["7.0 KM", "19 TURNS", "HIGH SPEED"], Silverstone: ["5.9 KM", "18 TURNS", "AERO LOAD"] }[circuit];
-  const slug = { Suzuka: "suzuka", Spa: "spa", Silverstone: "silverstone" }[circuit] as const;
-  return <div className="circuit-console">
-    <div className="console-topline"><span>TRACK MODEL / 01</span><span className="live-dot">INTERACTIVE</span></div>
-    <div className="track-stage"><CircuitMap slug={slug} name={circuit} className="track-render" />
-      <span className="track-marker marker-one">TRACK NOTE</span><span className="track-marker marker-two">OSM DATA</span>
-      <div className="track-title"><span>FEATURED CIRCUIT</span><strong>{circuit.toUpperCase()}</strong></div>
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [open]);
+  const links = [["Weekend", "#weekend"], ["Circuits", "/circuits"], ["Strategy", "/strategy"], ["Stories", "/stories"]];
+  return <>
+    <nav className="aa-nav" aria-label="Primary navigation">
+      <Animate direction="down"><a className="aa-logo" href="#top"><i />APEX <span>ATLAS</span></a></Animate>
+      <Animate delay={100} direction="down" className="aa-nav-pill">{links.map(([label, href]) => <a key={label} href={href}>{label}</a>)}</Animate>
+      <Animate delay={200} direction="down" className="aa-nav-action"><a href="/circuits">2026 CALENDAR</a><a href="#weekend">OPEN BRIEF</a></Animate>
+      <Animate delay={100} direction="down" className="aa-menu-wrap"><button className={open ? "aa-menu open" : "aa-menu"} type="button" onClick={() => setOpen(!open)} aria-label="Toggle navigation" aria-expanded={open}><i /><i /></button></Animate>
+    </nav>
+    <div className={open ? "aa-mobile-nav open" : "aa-mobile-nav"} aria-hidden={!open}>
+      <button className="aa-mobile-backdrop" type="button" aria-label="Close navigation" onClick={() => setOpen(false)} />
+      <div className="aa-mobile-panel">{links.map(([label, href], index) => <a key={label} href={href} onClick={() => setOpen(false)} style={{ transitionDelay: open ? `${100 + index * 50}ms` : "0ms" }}>{label}<span>↗</span></a>)}</div>
     </div>
-    <div className="circuit-stats">{info.map((stat) => <span key={stat}>{stat}</span>)}</div>
-    <div className="circuit-tabs" aria-label="Select a circuit">{circuitOptions.map((name, index) => <button type="button" key={name} className={circuit === name ? "active" : ""} onClick={() => setCircuit(name)}><span>0{index + 1}</span>{name}</button>)}</div>
-  </div>;
+  </>;
 }
+
+function clamp(value: number, min: number, max: number) { return Math.max(min, Math.min(max, value)); }
 
 export function StrategyLab() {
   const [stopLap, setStopLap] = useState(24);
   const [wear, setWear] = useState(62);
   const [mode, setMode] = useState<"Dry" | "Mixed">("Dry");
-  const gain = Math.max(-3.2, Math.min(4.8, (28 - Math.abs(stopLap - 22)) * .2 - wear * .025 + (mode === "Mixed" ? 1.6 : 0)));
+  const gain = clamp((28 - Math.abs(stopLap - 22)) * .2 - wear * .025 + (mode === "Mixed" ? 1.6 : 0), -3.2, 4.8);
   return <div className="strategy-panel"><div className="strategy-head"><div><span>SCENARIO 07</span><h3>UNDERCUT WINDOW</h3></div><div className="mode-switch" aria-label="Track conditions">{(["Dry", "Mixed"] as const).map((item) => <button type="button" className={mode === item ? "active" : ""} onClick={() => setMode(item)} key={item}>{item}</button>)}</div></div>
     <div className="strategy-body">
       <label><span><b>PIT LAP</b><output>{stopLap}</output></span><input aria-label="Pit stop lap" type="range" min="12" max="40" value={stopLap} onChange={(event) => setStopLap(Number(event.target.value))} /></label>
@@ -185,23 +92,50 @@ export function StrategyLab() {
   </div>;
 }
 
-const stories = [
-  { tag: "AERODYNAMICS / 08 MIN", title: "How ground effect turns pressure into pace", number: "01", className: "story-aero", slug: "ground-effect-pressure-into-pace" },
-  { tag: "RACECRAFT / 06 MIN", title: "The anatomy of a perfectly timed undercut", number: "02", className: "story-strategy", slug: "anatomy-of-an-undercut" },
-  { tag: "CIRCUITS / 11 MIN", title: "Why rhythm matters more than speed at Suzuka", number: "03", className: "story-track", slug: "why-rhythm-matters-at-suzuka" },
-];
-
 export default function ApexExperience() {
+  const [weekend, setWeekend] = useState<Weekend>(fallbackWeekend);
+  const [now, setNow] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  return <main>
-    <nav className="nav-shell" aria-label="Primary navigation"><a className="wordmark" href="#top" aria-label="Apex Atlas home"><i />APEX <span>ATLAS</span></a><div className={`nav-links ${menuOpen ? "open" : ""}`}><a href="#top" onClick={() => setMenuOpen(false)}>Race weekend</a><a href="/circuits" onClick={() => setMenuOpen(false)}>Circuits</a><a href="/strategy" onClick={() => setMenuOpen(false)}>Strategy</a><a href="/stories" onClick={() => setMenuOpen(false)}>Journal</a></div><a className="nav-cta" href="#top">Open live brief <span>↗</span></a><button className="menu-button" type="button" aria-label="Toggle navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><i /><i /></button></nav>
-    <RaceWeekendHub />
-    <section className="manifesto section-pad"><p className="section-kicker"><span>02</span> THE APEX ATLAS</p><div><h2>Motorsport moves fast.<br /><em>We make it legible.</em></h2><p>A race-weekend companion for people who want the meaning behind the timing screen: what matters, why it matters and what to watch next.</p></div><div className="manifesto-stats"><span><b>23</b> 2026 ROUNDS</span><span><b>LIVE</b> SESSION CONTEXT</span><span><b>05</b> MINUTE BRIEF</span></div></section>
-    <section className="circuits section-pad" id="circuits"><div className="section-heading"><div><p className="section-kicker"><span>03</span> CIRCUIT ATLAS</p><h2>Every corner<br />has a <em>reason.</em></h2></div><p>Trace the real circuit geometry, compare its demands and discover why one sequence rewards patience while the next demands commitment.</p></div><CircuitExplorer /></section>
-    <section className="machine section-pad" id="machine"><div className="machine-copy"><p className="section-kicker light"><span>04</span> THE MACHINE</p><h2>Designed by air.<br /><em>Defined by detail.</em></h2><p>Explore a fictional open-wheel concept car, engineered to teach the principles without borrowing a badge, livery or secret.</p><a href="/car-lab" className="text-link">OPEN THE CAR LAB <span>↗</span></a></div><div className="machine-diagram"><img className="machine-render" src="/media/apex-racecar-hero.png" alt="Apex Atlas open-wheel concept car" /><span className="callout callout-one">DOWNFORCE<br /><b>ACTIVE LOAD</b></span><span className="callout callout-two">AIRFLOW<br /><b>CARBON FLOOR</b></span><span className="callout callout-three">CHASSIS<br /><b>AA–01</b></span></div><div className="principles"><div><span>01</span><h3>CONTROL THE FLOW</h3><p>Shape pressure around the car to create grip without carrying unnecessary resistance.</p></div><div><span>02</span><h3>MANAGE THE PLATFORM</h3><p>Keep the floor in its operating window as speed, fuel load and corners change.</p></div><div><span>03</span><h3>TRUST THE DETAIL</h3><p>Small surfaces work as one aerodynamic system. Nothing operates in isolation.</p></div></div></section>
-    <section className="strategy section-pad" id="strategy"><div className="section-heading strategy-heading"><div><p className="section-kicker"><span>05</span> STRATEGY STUDIO</p><h2>Win the race<br /><em>before the pass.</em></h2></div><p>Move the pit window and tyre wear controls. See how a single decision changes the shape of the race.</p></div><StrategyLab /></section>
-    <section className="journal section-pad" id="journal"><div className="journal-head"><div><p className="section-kicker"><span>06</span> FIELD JOURNAL</p><h2>Read the race<br /><em>differently.</em></h2></div><a className="text-link dark" href="/stories">VIEW ALL STORIES <span>↗</span></a></div><div className="story-grid" id="stories">{stories.map((story) => <article className={`story-card ${story.className}`} key={story.number}><div className="story-art"><span>{story.number}</span><i /></div><p>{story.tag}</p><h3>{story.title}</h3><a href={`/stories/${story.slug}`} aria-label={`Read ${story.title}`}>READ FIELD NOTE <span>↗</span></a></article>)}</div></section>
-    <section className="closing"><p>THE CHEQUERED FLAG IS ONLY THE BEGINNING.</p><h2>FIND THE<br /><em>RACING LINE.</em></h2><a href="#circuits" className="button-primary">ENTER THE ATLAS <span>↗</span></a><div className="closing-line" /></section>
-    <footer><div className="footer-brand"><a className="wordmark" href="#top"><i />APEX <span>ATLAS</span></a><p>An independent field guide to motorsport technology, circuits and racecraft.</p></div><div className="footer-links"><div><b>EXPLORE</b><a href="/circuits">Circuit Atlas</a><a href="/car-lab">Car Lab</a><a href="/strategy">Strategy Studio</a></div><div><b>ABOUT</b><a href="/about">Our approach</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div></div><div className="footer-meta"><span>© 2026 APEX ATLAS</span><span>INDEPENDENT. UNOFFICIAL. BUILT FOR THE CURIOUS.</span></div></footer>
+  const timezone = useMemo(() => typeof Intl === "undefined" ? "Local time" : Intl.DateTimeFormat().resolvedOptions().timeZone.replaceAll("_", " "), []);
+
+  useEffect(() => {
+    setNow(Date.now());
+    fetch("/api/race-weekend").then((response) => response.ok ? response.json() : Promise.reject()).then(setWeekend).catch(() => undefined);
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return <main className="aa-site">
+    <section className="aa-hero" id="top">
+      <div className="aa-hero-media" aria-hidden="true"><img src="/media/apex-racecar-hero.png" alt="" /><div className="aa-orbit aa-orbit-one" /><div className="aa-orbit aa-orbit-two" /></div>
+      <Navigation open={menuOpen} setOpen={setMenuOpen} />
+      <div className="aa-hero-row">
+        <div className="aa-hero-copy">
+          <Animate delay={250}><p className="aa-kicker"><span>●</span> THE RACE, MADE LEGIBLE</p></Animate>
+          <Animate delay={350}><h1>Know the race<br />before <em>lights out.</em></h1></Animate>
+          <Animate delay={520}><p className="aa-lede">A calm, visual briefing for every Formula racing weekend—sessions, circuit character and strategy in five focused minutes.</p></Animate>
+          <Animate delay={680} className="aa-hero-actions"><a className="aa-button aa-button-light" href="#weekend">Open weekend brief</a><a className="aa-button aa-button-ghost" href="/circuits">Explore 2026 calendar</a></Animate>
+          <Animate delay={780}><p className="aa-local-time">LIVE CONTEXT · {timezone.toUpperCase()} · SPOILER-SAFE READING</p></Animate>
+        </div>
+        <WeekendCard weekend={weekend} now={now} />
+      </div>
+      <a className="aa-scroll-cue" href="#purpose"><span /> SCROLL TO EXPLORE</a>
+    </section>
+
+    <section className="aa-purpose" id="purpose">
+      <div className="aa-purpose-head"><p>WHY APEX ATLAS</p><h2>Everything that matters.<br /><em>Nothing that doesn’t.</em></h2><p>Built for the hour before a session, the second-screen check during qualifying, and the question you have after the chequered flag.</p></div>
+      <div className="aa-purpose-grid">
+        <article><span>01</span><h3>Arrive prepared</h3><p>Your local session times and one concise explanation of what will shape the weekend.</p><a href="#weekend">VIEW THIS WEEKEND ↗</a></article>
+        <article><span>02</span><h3>Read the circuit</h3><p>Real track geometry with credited source data, essential dimensions and corner-by-corner context.</p><a href="/circuits">OPEN THE ATLAS ↗</a></article>
+        <article><span>03</span><h3>Test the call</h3><p>Explore how tyre life, pit timing and race interruptions change the strategic window.</p><a href="/strategy">TRY STRATEGY STUDIO ↗</a></article>
+      </div>
+    </section>
+
+    <section className="aa-weekend-proof" id="weekend">
+      <div className="aa-proof-map"><CircuitMap slug="zandvoort" name="Circuit Zandvoort" /><div className="aa-map-index">12<span>/23</span></div></div>
+      <div className="aa-proof-copy"><p className="aa-kicker"><span>●</span> THIS WEEKEND · ZANDVOORT</p><h2>A circuit that<br /><em>refuses to sit flat.</em></h2><p>Four kilometres of narrow, banked commitment. Apex Atlas turns the shape into a useful briefing: where track position matters, why the banking changes tyre load, and how a Sprint compresses every setup decision.</p><div className="aa-proof-stats"><span><b>4.259</b> KM</span><span><b>72</b> LAPS</span><span><b>14</b> TURNS</span></div><a className="aa-button aa-button-light" href="/circuits">Explore all 23 circuits</a><small>Geometry © <a href="https://www.openstreetmap.org/way/23285808" target="_blank" rel="noreferrer">OpenStreetMap contributors</a> · Facts: <a href="https://www.formula1.com/en/information/netherlands-zandvoort-circuit-zandvoort.6XdtPTIMZzx5wLKP9mm7Ev" target="_blank" rel="noreferrer">Formula 1</a></small></div>
+    </section>
+
+    <footer className="aa-footer"><a className="aa-logo" href="#top"><i />APEX <span>ATLAS</span></a><p>Independent. Unofficial. Built for the curious.</p><nav><a href="/about">About</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/ads.txt">Ads.txt</a></nav><small>© 2026 APEX ATLAS</small></footer>
   </main>;
 }

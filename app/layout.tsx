@@ -25,13 +25,13 @@ export async function generateMetadata(): Promise<Metadata> {
       title: "Apex Atlas — Understand the Race",
       description: "The five-minute visual briefing for every race weekend.",
       type: "website",
-      images: [{ url: `${origin}/og-race-weekend.png`, width: 1536, height: 1024, alt: "Apex Atlas — Understand the Race" }],
+      images: [{ url: `${origin}/og-cinematic-v2.png`, width: 1536, height: 1024, alt: "Apex Atlas — Know the Race Before Lights Out" }],
     },
     twitter: {
       card: "summary_large_image",
       title: "Apex Atlas — Understand the Race",
       description: "The five-minute visual briefing for every race weekend.",
-      images: [`${origin}/og-race-weekend.png`],
+      images: [`${origin}/og-cinematic-v2.png`],
     },
   };
 }
