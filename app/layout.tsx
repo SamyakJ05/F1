@@ -42,24 +42,20 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const adsenseClient = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT;
+  const adsenseClient = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT || "ca-pub-1497786346597378";
 
   return (
     <html lang="en">
       <head>
-        {adsenseClient && adsenseClient.startsWith("ca-pub-") ? (
-          <meta name="google-adsense-account" content={adsenseClient} />
-        ) : null}
+        <meta name="google-adsense-account" content={adsenseClient} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {adsenseClient && adsenseClient.startsWith("ca-pub-") ? (
-          <Script
-            id="google-adsense"
-            strategy="afterInteractive"
-            crossOrigin="anonymous"
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
-          />
-        ) : null}
+        <Script
+          id="google-adsense"
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
+        />
         {children}
       </body>
     </html>

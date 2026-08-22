@@ -16,7 +16,7 @@ export function AdSlot({
   label = "ADVERTISEMENT",
 }: AdSlotProps) {
   const adRef = useRef<HTMLModElement | null>(null);
-  const adsenseClient = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT;
+  const adsenseClient = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT || "ca-pub-1497786346597378";
   const isAdSenseConfigured = Boolean(adsenseClient && adsenseClient.startsWith("ca-pub-") && slotId);
 
   useEffect(() => {
