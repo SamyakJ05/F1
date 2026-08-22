@@ -8,7 +8,7 @@ type Props = {
 
 export function CircuitMap({ slug, name, className = "" }: Props) {
   const track = trackGeometry[slug];
-  const relationUrl = `https://www.openstreetmap.org/relation/${track.osmRelationId}`;
+  const relationUrl = track.osmUrl ?? `https://www.openstreetmap.org/relation/${track.osmRelationId}`;
 
   return <figure className={`circuit-map ${className}`}>
     <svg viewBox="0 0 100 100" role="img" aria-label={`${name} circuit layout, derived from OpenStreetMap raceway geometry`}>

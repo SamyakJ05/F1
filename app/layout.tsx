@@ -19,19 +19,19 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.includes("localhost") ? "http" : "https");
   const origin = `${protocol}://${host}`;
   return {
-    title: "Apex Atlas — Racecraft, Decoded",
-    description: "An independent visual field guide to motorsport circuits, machines and race strategy.",
+    title: "Apex Atlas — Understand the Race",
+    description: "Your five-minute visual briefing for every race weekend: sessions, circuits, championship context and strategy.",
     openGraph: {
-      title: "Apex Atlas — Racecraft, Decoded",
-      description: "Explore the machines, circuits and decisions that turn velocity into victory.",
+      title: "Apex Atlas — Understand the Race",
+      description: "The five-minute visual briefing for every race weekend.",
       type: "website",
-      images: [{ url: `${origin}/og.png`, width: 1730, height: 909, alt: "Apex Atlas — Racecraft, Decoded" }],
+      images: [{ url: `${origin}/og-race-weekend.png`, width: 1536, height: 1024, alt: "Apex Atlas — Understand the Race" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Apex Atlas — Racecraft, Decoded",
-      description: "An independent visual field guide to motorsport.",
-      images: [`${origin}/og.png`],
+      title: "Apex Atlas — Understand the Race",
+      description: "The five-minute visual briefing for every race weekend.",
+      images: [`${origin}/og-race-weekend.png`],
     },
   };
 }
