@@ -52,6 +52,38 @@ export const circuits: Circuit[] = [
   },
 ];
 
+export type CalendarRace = { round: number; date: string; country: string; city: string; circuit: string; note?: string };
+
+// Current official race calendar, checked 22 August 2026.
+// The Bahrain GP is scheduled at Sepang; the Saudi Arabian round is not on the current official schedule.
+export const calendar2026: CalendarRace[] = [
+  { round: 1, date: "06–08 MAR", country: "Australia", city: "Melbourne", circuit: "Albert Park Circuit" },
+  { round: 2, date: "13–15 MAR", country: "China", city: "Shanghai", circuit: "Shanghai International Circuit" },
+  { round: 3, date: "27–29 MAR", country: "Japan", city: "Suzuka", circuit: "Suzuka International Racing Course" },
+  { round: 4, date: "01–03 MAY", country: "United States", city: "Miami", circuit: "Miami International Autodrome" },
+  { round: 5, date: "22–24 MAY", country: "Canada", city: "Montréal", circuit: "Circuit Gilles-Villeneuve" },
+  { round: 6, date: "05–07 JUN", country: "Monaco", city: "Monaco", circuit: "Circuit de Monaco" },
+  { round: 7, date: "12–14 JUN", country: "Spain", city: "Barcelona", circuit: "Circuit de Barcelona-Catalunya" },
+  { round: 8, date: "26–28 JUN", country: "Austria", city: "Spielberg", circuit: "Red Bull Ring" },
+  { round: 9, date: "03–05 JUL", country: "Great Britain", city: "Silverstone", circuit: "Silverstone Circuit" },
+  { round: 10, date: "17–19 JUL", country: "Belgium", city: "Spa-Francorchamps", circuit: "Circuit de Spa-Francorchamps" },
+  { round: 11, date: "24–26 JUL", country: "Hungary", city: "Budapest", circuit: "Hungaroring" },
+  { round: 12, date: "21–23 AUG", country: "Netherlands", city: "Zandvoort", circuit: "Circuit Zandvoort" },
+  { round: 13, date: "04–06 SEP", country: "Italy", city: "Monza", circuit: "Autodromo Nazionale Monza" },
+  { round: 14, date: "11–13 SEP", country: "Spain", city: "Madrid", circuit: "MADRING" },
+  { round: 15, date: "24–26 SEP", country: "Azerbaijan", city: "Baku", circuit: "Baku City Circuit" },
+  { round: 16, date: "02–04 OCT", country: "Bahrain GP in Malaysia", city: "Sepang", circuit: "Sepang International Circuit", note: "Revised venue" },
+  { round: 17, date: "09–11 OCT", country: "Singapore", city: "Singapore", circuit: "Marina Bay Street Circuit" },
+  { round: 18, date: "23–25 OCT", country: "United States", city: "Austin", circuit: "Circuit of the Americas" },
+  { round: 19, date: "30 OCT–01 NOV", country: "Mexico", city: "Mexico City", circuit: "Autódromo Hermanos Rodríguez" },
+  { round: 20, date: "06–08 NOV", country: "Brazil", city: "São Paulo", circuit: "Autódromo José Carlos Pace" },
+  { round: 21, date: "19–21 NOV", country: "United States", city: "Las Vegas", circuit: "Las Vegas Strip Circuit" },
+  { round: 22, date: "27–29 NOV", country: "Qatar", city: "Lusail", circuit: "Lusail International Circuit" },
+  { round: 23, date: "04–06 DEC", country: "United Arab Emirates", city: "Abu Dhabi", circuit: "Yas Marina Circuit" },
+];
+
+export const calendar2026SourceUrl = "https://www.formula1.com/en/racing/2026";
+
 export type Story = { slug: string; title: string; tag: string; minutes: string; deck: string; sections: { heading: string; text: string }[] };
 
 export const stories: Story[] = [
