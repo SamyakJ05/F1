@@ -165,6 +165,7 @@ export function AtlasShell({ children }: { children: ReactNode }) {
       {/* Footer Leaderboard Ad Placement */}
       <div className="aa-footer-ad-wrap">
         <AdSlot format="horizontal" label="SPONSOR SPOTLIGHT" />
+        <AdSlot format="horizontal" label="ADVERTISEMENT" />
       </div>
 
       <footer className="atlas-footer">

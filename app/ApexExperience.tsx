@@ -391,6 +391,7 @@ export default function ApexExperience() {
             <Link href="/stories/anatomy-of-an-undercut">Anatomy of the Undercut</Link>
             <Link href="/stories/active-aero-2026-regulations">2026 Active Aero Rules</Link>
             <Link href="/stories/tire-chemistry-thermal-degradation">Tire Chemistry &amp; Degradation</Link>
+            <Link href="/stories/telemetry-decoded-trail-braking">Telemetry &amp; Trail Braking</Link>
           </div>
 
           <div className="footer-col">

@@ -1,29 +1,40 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { AtlasShell } from "../components/AtlasShell";
 import { AdSlot } from "../components/AdSlot";
 
 const systems = [
   {
     num: "01",
-    title: "FRONT WING & Y250 VORTICES",
-    desc: "The first aerodynamic surface to meet undisturbed air. Flap angle controls front-axle bite and directs outward outwash around the front tires to shield the underfloor.",
+    title: "FRONT WING & Y250 VORTEX CONTROL",
+    desc: "The primary aerodynamic structure meeting undisturbed free-stream air. Flap angle dictates front-axle vertical bite, while cascade winglets generate high-energy outward vortex structures to deflect turbulent front tire wake away from the underfloor Venturi inlets.",
   },
   {
     num: "02",
-    title: "VENTURI FLOOR & UNDERBODY TUNNELS",
-    desc: "Generates over 60% of the total vehicle downforce with minimal drag penalty through Bernoulli pressure drops and aggressive floor edge vortex sealing.",
+    title: "VENTURI FLOOR & UNDERBODY DIFFUSERS",
+    desc: "Produces more than 60% of total vehicle downforce with minimal induced drag penalty. Air accelerates through constricted underfloor throats, creating intense Bernoulli low pressure that suctions the chassis onto the track surface.",
   },
   {
     num: "03",
-    title: "SUSPENSION PLATFORM & HEAVE DAMPER",
-    desc: "Maintains a millimetric aerodynamic ride-height platform at 330 km/h, preventing underfloor boundary layer stalls and porpoising across track bumps.",
+    title: "HEAVE SPRINGS & SUSPENSION PLATFORM",
+    desc: "Maintains a millimetric aerodynamic platform at speeds exceeding 330 km/h. Third heave dampers decouple straight-line vertical aero compression from lateral cornering roll, preventing underfloor boundary layer detachment and violent porpoising.",
   },
   {
     num: "04",
-    title: "ACTIVE REAR WING & BEAM WING",
-    desc: "Provides critical high-speed braking stability and expands the diffuser exit volume, with dual-mode active flap trimming for straight-line efficiency.",
+    title: "2026 ACTIVE REAR WING & BEAM FLAPS",
+    desc: "Features dual-state active aerodynamic actuation. Under braking and cornering, flaps snap into high-downforce Z-Mode. On straightaways, the flaps flatten into low-drag X-Mode, slashing aerodynamic drag to maximize straight-line speed.",
+  },
+  {
+    num: "05",
+    title: "BRAKE COOLING DUCTS & INTERNAL CHEVRONS",
+    desc: "Captures high-pressure ambient air through upright scoops to cool carbon-carbon discs operating above 1,000°C. Centrifugal rotation expels hot air through 1,400 micro-drilled chevron holes directly warming magnesium wheel rims.",
+  },
+  {
+    num: "06",
+    title: "FLOOR-EDGE PNEUMATIC CURTAIN VORTICES",
+    desc: "Longitudinal floor edge vanes shed spiraling high-velocity vortices that function as invisible pneumatic side skirts. These vortices seal the underfloor vacuum from ambient high-pressure air attempting to bleed inward laterally.",
   },
 ];
 
@@ -46,16 +57,16 @@ export default function CarLabPage() {
       <section className="car-lab-hero">
         <div>
           <p className="section-kicker">
-            <span>02</span> AA–01 CONCEPT MACHINE &amp; TELEMETRY LAB
+            <span>02</span> AA–01 CONCEPT MACHINE &amp; AERODYNAMICS LAB
           </p>
           <h1>
             Every surface<br />
             <em>has a job.</em>
           </h1>
           <p>
-            An interactive aerodynamics and chassis lab exploring the trade-off between downforce, top speed, and 2026 active aero regulations.
+            An interactive chassis engineering laboratory exploring downforce trade-offs, aerodynamic boundary layers, and the 2026 active wing regulations.
           </p>
-          <small>3D CONCEPT TELEMETRY PLATFORM</small>
+          <small>3D CONCEPT TELEMETRY &amp; CFD PLATFORM</small>
         </div>
         <div className="car-lab-stage">
           <img
@@ -65,7 +76,7 @@ export default function CarLabPage() {
         </div>
       </section>
 
-      {/* Top Banner Ad */}
+      {/* Leaderboard Ad */}
       <div className="aa-page-ad-wrap">
         <AdSlot format="horizontal" />
       </div>
@@ -76,6 +87,9 @@ export default function CarLabPage() {
           <div className="sim-head">
             <span className="aa-kicker"><span>AERODYNAMICS LAB</span> 2026 ACTIVE AERO SIMULATOR</span>
             <h2>Configure Downforce &amp; Active Wing Modes</h2>
+            <p style={{ fontSize: "0.9rem", opacity: 0.8, marginTop: "0.5rem" }}>
+              Toggle between Z-Mode (cornering downforce) and X-Mode (low-drag straightaway) to observe the dynamic trade-off between cornering G-load and projected terminal velocity.
+            </p>
           </div>
 
           <div className="sim-controls-grid">
@@ -109,8 +123,8 @@ export default function CarLabPage() {
                 aria-label="Rear wing trim angle slider"
               />
               <div className="range-hints">
-                <span>20% (Monza Trim)</span>
-                <span>100% (Monaco Max Wing)</span>
+                <span>20% (Monza Skinny Trim)</span>
+                <span>100% (Monaco Maximum Wing)</span>
               </div>
             </div>
           </div>
@@ -119,13 +133,13 @@ export default function CarLabPage() {
             <div className="readout-card">
               <span>SIMULATED DOWNFORCE (AT 250 KM/H)</span>
               <strong>{calculatedDownforceKg} <small>KG</small></strong>
-              <small>{aeroMode.startsWith("Z") ? "Cornering load active" : "Low drag straightaway state"}</small>
+              <small>{aeroMode.startsWith("Z") ? "Cornering suction active" : "Low drag straightaway state"}</small>
             </div>
 
             <div className="readout-card">
               <span>PROJECTED TOP SPEED</span>
               <strong>{calculatedTopSpeedKmh} <small>KM/H</small></strong>
-              <small>{(calculatedTopSpeedKmh * 0.621371).toFixed(0)} MPH</small>
+              <small>{(calculatedTopSpeedKmh * 0.621371).toFixed(0)} MPH TERMINAL</small>
             </div>
 
             <div className="readout-card">
@@ -139,7 +153,7 @@ export default function CarLabPage() {
 
       {/* Machine Systems Breakdown */}
       <section className="systems-section">
-        <p className="section-kicker"><span>03</span> MACHINE SUBSYSTEMS</p>
+        <p className="section-kicker"><span>03</span> CHASSIS &amp; AERODYNAMIC SUBSYSTEMS</p>
         <div className="systems-list">
           {systems.map((s) => (
             <article key={s.title}>
@@ -156,6 +170,7 @@ export default function CarLabPage() {
         <AdSlot format="in-article" />
       </div>
 
+      {/* Technical Deep Dive Callout */}
       <section className="car-lab-note">
         <span>AA–01 DESIGN PRINCIPLE</span>
         <h2>
@@ -163,8 +178,16 @@ export default function CarLabPage() {
           <em>It is a conversation.</em>
         </h2>
         <p>
-          A flap adjustment at the front wing transforms the underfloor suction; a 1mm change in rear ride height alters tire temperature balance across entire race stints.
+          A 0.5-degree flap adjustment at the front wing transforms the underfloor vortex seal; a 1mm change in rear ride height alters tire temperature balance across entire race stints.
         </p>
+        <div style={{ marginTop: "1.5rem", display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
+          <Link href="/stories/ground-effect-pressure-into-pace" className="aa-button aa-button-light">
+            Read Ground Effect Explainer ↗
+          </Link>
+          <Link href="/stories/suspension-kinematics-aero-platform" className="aa-button aa-button-ghost">
+            Suspension Kinematics Guide ↗
+          </Link>
+        </div>
       </section>
     </AtlasShell>
   );

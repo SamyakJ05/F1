@@ -17,50 +17,60 @@ export function AdSlot({
 }: AdSlotProps) {
   const adRef = useRef<HTMLModElement | null>(null);
   const adsenseClient = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT || "ca-pub-1497786346597378";
-  const isAdSenseConfigured = Boolean(adsenseClient && adsenseClient.startsWith("ca-pub-") && slotId);
 
   useEffect(() => {
-    if (isAdSenseConfigured && adRef.current && typeof window !== "undefined") {
+    if (typeof window !== "undefined" && adRef.current) {
       try {
         const win = window as unknown as { adsbygoogle?: unknown[] };
         win.adsbygoogle = win.adsbygoogle || [];
         win.adsbygoogle.push({});
       } catch {
-        // Safe no-op on ad blocker or duplicate pushes
+        // Safe no-op on ad blockers or duplicate pushes
       }
     }
-  }, [isAdSenseConfigured, slotId]);
+  }, [slotId]);
 
   return (
     <aside
       className={`aa-ad-slot aa-ad-${format} ${className}`}
-      aria-label="Sponsorship and editorial support"
+      aria-label="Advertisement"
+      style={{ margin: "1.75rem auto", maxWidth: "100%", overflow: "hidden" }}
     >
-      <div className="aa-ad-header">
+      <div
+        className="aa-ad-header"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "4px 8px",
+          fontSize: "0.68rem",
+          letterSpacing: "0.08em",
+          opacity: 0.6,
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
         <span className="aa-ad-badge">{label}</span>
-        <span className="aa-ad-tag">SUPPORTS INDEPENDENT MOTORSPORT JOURNALISM</span>
       </div>
 
-      <div className="aa-ad-container">
-        {isAdSenseConfigured ? (
-          <ins
-            ref={adRef}
-            className="adsbygoogle"
-            style={{ display: "block" }}
-            data-ad-client={adsenseClient}
-            data-ad-slot={slotId}
-            data-ad-format={format === "in-article" ? "fluid" : "auto"}
-            data-full-width-responsive="true"
-          />
-        ) : (
-          <div className="aa-ad-placeholder">
-            <div className="aa-ad-placeholder-content">
-              <span className="aa-ad-sponsor-label">APEX ATLAS SPONSOR SPOTLIGHT</span>
-              <p>High-performance engineering &amp; motorsport telemetry tools.</p>
-              <small>Ad placement active · Compliant with Google AdSense Policies</small>
-            </div>
-          </div>
-        )}
+      <div
+        className="aa-ad-container"
+        style={{
+          minHeight: format === "horizontal" ? "90px" : "250px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "rgba(255,255,255,0.015)",
+        }}
+      >
+        <ins
+          ref={adRef}
+          className="adsbygoogle"
+          style={{ display: "block", width: "100%" }}
+          data-ad-client={adsenseClient}
+          {...(slotId ? { "data-ad-slot": slotId } : {})}
+          data-ad-format={format === "in-article" ? "fluid" : "auto"}
+          data-full-width-responsive="true"
+        />
       </div>
     </aside>
   );
