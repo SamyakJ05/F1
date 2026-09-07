@@ -3,28 +3,30 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-async function renderPath(path = "/") {
 async function renderPath(targetPath = "/") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
 
   return worker.fetch(
-    new Request(`http://localhost${path}`, {
-      headers: { accept: "text/html" },
     new Request(`http://localhost${targetPath}`, {
       headers: { accept: "*/*" },
     }),
     {
       ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
         fetch: async (req) => {
           const url = new URL(req.url);
           try {
             const filePath = path.join(process.cwd(), "public", url.pathname);
-            const content = await fs.readFile(filePath, "utf-8");
+            const content = await fs.readFile(filePath);
             const ext = path.extname(url.pathname);
-            const contentType = ext === ".txt" ? "text/plain; charset=utf-8" : "application/octet-stream";
+            const types = {
+              ".txt": "text/plain; charset=utf-8",
+              ".svg": "image/svg+xml",
+              ".ico": "image/x-icon",
+              ".png": "image/png",
+            };
+            const contentType = types[ext] || "application/octet-stream";
             return new Response(content, { status: 200, headers: { "content-type": contentType } });
           } catch {
             return new Response("Not found", { status: 404 });
@@ -70,7 +72,6 @@ test("server-renders driver comparison page", async () => {
   assert.match(html, /Constructors Championship/i);
 });
 
-test("server-renders motorsport quiz challenge page", async () => {
 test("server-renders motorsport quiz challenge page with 20 questions", async () => {
   const response = await renderPath("/quiz");
   assert.equal(response.status, 200);
@@ -80,7 +81,6 @@ test("server-renders motorsport quiz challenge page with 20 questions", async ()
   assert.match(html, /Assessment Domains/i);
 });
 
-test("server-renders legal and compliance pages", async () => {
 test("server-renders technical stories and verifies no broken links", async () => {
   const [indexRes, tireRes, telemetryRes, groundRes] = await Promise.all([
     renderPath("/stories"),
@@ -162,4 +162,32 @@ test("serves valid ads.txt and robots.txt for Google AdSense crawler compliance"
   assert.match(robotsText, /User-agent:\s*AdsBot-Google/i);
   assert.match(robotsText, /Sitemap:\s*https:\/\/apexatlas\.online\/sitemap\.xml/i);
 });
+
+test("serves favicon and browser tab icons with valid headers and link tags", async () => {
+  const [homeRes, icoRes, svgRes, appleRes] = await Promise.all([
+    renderPath("/"),
+    renderPath("/favicon.ico"),
+    renderPath("/favicon.svg"),
+    renderPath("/apple-touch-icon.png"),
+  ]);
+
+  assert.equal(homeRes.status, 200);
+  const homeHtml = await homeRes.text();
+  assert.match(homeHtml, /rel=["']icon["'][^>]*href=["']\/favicon\.ico["']/i);
+  assert.match(homeHtml, /rel=["']icon["'][^>]*href=["']\/favicon\.svg["']/i);
+  assert.match(homeHtml, /rel=["']apple-touch-icon["'][^>]*href=["']\/apple-touch-icon\.png["']/i);
+
+  assert.equal(icoRes.status, 200);
+  assert.match(icoRes.headers.get("content-type") ?? "", /^image\/x-icon/i);
+
+  assert.equal(svgRes.status, 200);
+  assert.match(svgRes.headers.get("content-type") ?? "", /^image\/svg\+xml/i);
+  const svgBody = await svgRes.text();
+  assert.match(svgBody, /polygon points=/i);
+  assert.match(svgBody, /#c7ff31/i);
+
+  assert.equal(appleRes.status, 200);
+  assert.match(appleRes.headers.get("content-type") ?? "", /^image\/png/i);
+});
+
 
