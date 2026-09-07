@@ -124,6 +124,35 @@ export default function RootLayout({
           src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
           crossOrigin="anonymous"
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+              function removeNetlifyBadge(){
+                var el = document.getElementById('nl-badge-frame') || document.getElementById('nl-hud-frame') || document.querySelector('iframe[title*="Netlify"]') || document.querySelector('script[src*="/.netlify/scripts/hud"]');
+                if (el && el.parentNode) { el.parentNode.removeChild(el); }
+              }
+              if (typeof window !== 'undefined') {
+                removeNetlifyBadge();
+                var obs = new MutationObserver(function(mutations){
+                  for (var i = 0; i < mutations.length; i++){
+                    var added = mutations[i].addedNodes;
+                    for (var j = 0; j < added.length; j++){
+                      var n = added[j];
+                      if (n && n.nodeType === 1){
+                        if (n.id === 'nl-badge-frame' || n.id === 'nl-hud-frame' || (n.tagName === 'IFRAME' && n.title && n.title.indexOf('Netlify') !== -1) || (n.tagName === 'SCRIPT' && n.src && n.src.indexOf('/.netlify/scripts/hud') !== -1)){
+                          n.remove();
+                        }
+                      }
+                    }
+                  }
+                });
+                if (document.documentElement) {
+                  obs.observe(document.documentElement, { childList: true, subtree: true });
+                }
+              }
+            })();`,
+          }}
+        />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
