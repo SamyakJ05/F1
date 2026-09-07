@@ -94,7 +94,7 @@ npm install
 ### 3. Configure Environment Variables *(Optional)*
 Create a `.env.local` file in the root directory:
 ```env
-NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT=ca-pub-1497786346597378
+NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT=ca-pub-XXXXXXXXXXXXXXXX
 ```
 
 ### 4. Run Development Server
